@@ -1,29 +1,60 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_restful import Resource, Api
-import uuid
+from flask_restful import Resource, Api, reqparse
+from flask_jwt import JWT, jwt_required
 
+from security import authenticate, identity
+
+import uuid
+import pdb;
 DEBUG = True
 
 app = Flask(__name__)
 app.config.from_object(__name__)
+app.secret_key = '12321'
 cors = CORS(app, resources={r"*":{"origins": "*"}})
 api = Api(app)
 
+jwt = JWT(app, authenticate, identity)
+
 class Book(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('author',
+        type=string,
+        required=True,
+        help="this field cannot be left blank"
+    )
+    data = parser.parse_args()
+
+    @jwt_required()
     def get(self,title):
-        for book in BOOKS:
-            if book['title'] == title:
-                return book
-        return {'item':None}, 404
+        book = [book for book in BOOKS if book['title'] == title]
+        #book = next(filter(lambda x: x['title'] == title, BOOKS), None)  using lambda function
+        return {'book':book}, 200 if book else 404
 
     def post(self,title):
-        data = request.get_json()
-
-
-        book = {'title':title, 'author':123}
+        if [book for book in BOOKS if book['title'] == title]:
+            return {'message':"item with title '{}' already exists".format(title)}, 400
+        data = Item.parser.parse_args()
+        book = {'title':title, 'author': data['author']}
         BOOKS.append(book)
         return book, 201
+
+    def delete(self, title):
+        global BOOKS
+        BOOKS = [book for book in BOOKS if book['title'] != title]
+        return {'message':'item deleted'}
+
+    def put(self, title):
+        data = Item.parser.parse_args()
+        book = next(filter(lambda x: x['title'] == title, BOOKS),None)
+        if book is None:
+            book = {'title':title, 'author':data['author']}
+            BOOKS.append(book)
+        else:
+            book.update(data)
+        return book
+
 
 class BookList(Resource):
     def get(self):
