@@ -126,8 +126,8 @@ export default {
         });
     },
 
-    addBook(payload) {
-      const path = 'http://localhost:5000/books';
+    addBook(payload,title) {
+      const path = `http://localhost:5000/book/${title}`;
       axios.post(path, payload)
         .then(() => {
           this.getBooks();
@@ -141,7 +141,7 @@ export default {
     },
 
     updateBook(payload,bookID){
-      const path = `http://localhost:5000/books/${bookID}`;
+      const path = `http://localhost:5000/book/${bookID}`;
       axios.put(path, payload)
         .then(() => {
           this.getBooks();
